@@ -1,6 +1,6 @@
-* Common-Lisp-Utility-Functions
+* My most commonly used functions from Emacs Lisp
 
-Functions I love to use from Emacs Lisp ported to Common Lisp. Those are from:
+Those are from:
 
 - https://github.com/magnars/s.el
 - https://github.com/magnars/dash.el
