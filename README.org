@@ -2,7 +2,7 @@
 
 Functions I love to use from Emacs Lisp ported to Common Lisp. Those are from:
 
-- https://github.com/magnars/s.el 
+- https://github.com/magnars/s.el
 - https://github.com/magnars/dash.el
 - https://github.com/rejeep/f.el
 - https://github.com/progfolio/subp
