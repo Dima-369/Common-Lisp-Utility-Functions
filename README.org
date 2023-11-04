@@ -1,0 +1,32 @@
+* Common-Lisp-Utility-Functions
+
+Functions I love to use from Emacs Lisp ported to Common Lisp. Those are from:
+
+- https://github.com/magnars/s.el 
+- https://github.com/magnars/dash.el
+- https://github.com/rejeep/f.el
+- https://github.com/progfolio/subp
+- https://github.com/emacs-mirror/emacs/blob/master/lisp/emacs-lisp/subr-x.el
+
+See the =(:export)= in =dima.lisp= for provided functions and macros.
+
+* Setup via ~/.sbclrc
+
+Clone this repository, then set the cloned director here:
+
+#+begin_src lisp
+(push #P"/Users/dima/Developer/Common-Lisp-Utility-Functions/" asdf:*central-registry*)
+#+end_src
+
+Then load via:
+
+#+begin_src lisp
+(ql:quickload '(dima))
+#+end_src
+
+Use add =(:use)= in your =(defpackage)= like this:
+
+#+begin_src lisp
+(defpackage my-package
+    (:use :cl :dima))
+#+end_src
