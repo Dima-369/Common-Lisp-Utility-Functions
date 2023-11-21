@@ -19,6 +19,7 @@
    while
    sha1
    vector-to-list
+   list-to-vector
    json-switch
    -drop
    -take
@@ -41,6 +42,12 @@
    f-mkdir
    f-exists-p
    f-expand
+   f-ext
+   f-directories
+   f-files
+   f-entries
+   f-filename
+   f-base
    concat
    s-truncate
    s-blank-p
@@ -54,6 +61,8 @@
    s-trim
    s-upcase
    s-downcase
+   s-contains-p
+   s-index-of
    subp-with
    slynk-kill-all-workers))
 (in-package dima)
@@ -118,6 +127,10 @@ The returned value is always nil."
 (defun vector-to-list (vector)
   "Return VECTOR as list."
   (coerce vector 'list))
+
+(defun list-to-vector (list)
+  "Return LIST as vector."
+  (coerce list 'vector))
 
 (defun json-switch (string-or-hash-table &optional prettyp)
   "Convert from or to string and hash table.
@@ -362,6 +375,24 @@ SEPARATOR can be a string or the keyword :newline."
   "Return S in lower case."
   (str:downcase s))
 
+(defun s-contains-p (substring s &optional ignore-case)
+  "Return true if S contains SUBSTRING.
+
+If IGNORE-CASE is non-nil, the comparison is done without paying
+attention to case differences."
+  (str:containsp substring s :ignore-case ignore-case))
+
+(defun s-index-of (substring s)
+  "Returns first index of NEEDLE in S, or nil.
+
+SUBSTRING and S are strings."
+  ;; (s-index-of "hello" "bye hello")
+  ;; (s-index-of "" "bye hello")
+  (when (str:containsp substring s)
+    (loop for i from 0 below (length s)
+          when (string= (subseq s i (+ i (length substring))) substring)
+            return i)))
+
 ;;; files
 
 (defun f-join (&rest paths)
@@ -430,15 +461,101 @@ Return true if the creation succeeded and nil otherwise."
 
 (defun f-expand (path)
   "Return the expanded string path which expands ~."
+  ;; (f-expand "~/")
+  ;; (f-expand "~")
   (if (string= "~" path)
       ;; handle case which would otherwise crash
       (s-chop-suffix "/" (uiop:native-namestring (truename "~/")))
       (uiop:native-namestring (truename path))))
 
+(defun f-ext (path)
+  "Return a string of the extension of PATH or nil.
+
+The extension, in a file name, is the part that follows the last
+'.', excluding version numbers and backup suffixes.
+
+Return nil for extensionless file names such as `foo'.
+Return the empty string for file names such as `foo.' that end in a period."
+  ;; (f-ext "/Users/dima/.CFUserTextEncoding") => nil
+  ;; (f-ext "path/to/file.txt") => "txt"
+  ;; (f-ext "path/to/file.txt.org") => "org"
+  ;; (f-ext "/path/to/.dot") => nil
+  ;; (f-ext "foo") => nil
+  ;; (f-ext "foo.") => ""
+  (pathname-type path))
+
+(defun f-entries (path)
+  "Return a list of all files and directories as strings in PATH.
+
+Directories end with a \"/\" and PATH must exist.
+
+There is no sorting applied. The returned list is not sorted and
+contains first files, then directories."
+  ;; (f-entries "~")
+  (append (f-files path) (f-directories path)))
+
+(defun f-files (path)
+  "Return a list of all files PATH.
+
+None of the files end with a '/'.
+
+Directories end with a \"/\"."
+  ;; (f-files "~")
+  ;; (f-files "~/")
+  (setq path (f-expand path))
+  (unless (s-ends-with-p "/" path)
+    (setq path (concat path "/")))
+  (--map
+   (namestring it)
+   (uiop:directory-files (f-expand path))))
+
+(defun f-directories (path)
+  "Return a list of all directories as strings in PATH.
+
+They all end with a '/' character.
+
+If the directory does not exist, nil is returned."
+  ;; (f-directories "~/")
+  ;; (f-directories"~")
+  (unless (s-ends-with-p "/" path)
+    (setq path (concat path "/")))
+  (--map
+   (namestring it)
+   (uiop:subdirectories path)))
+
+(defun f-filename (path)
+  "Return the name of PATH without any directory.
+
+PATH is a string."
+  ;; (f-filename "path/to/.foo") => ".foo"
+  ;; (f-filename "path/to/file.ext") => "file.ext"
+  ;; (f-filename "path/to/directory/") => "directory"
+
+  ;; cut off / for parity to Emacs Lisp
+  (setq path (s-chop-suffix "/" path))
+  (file-namestring path))
+
+(defun f-base (path)
+  "Return the name of PATH, excluding the extension of file.
+
+PATH is a string."
+  ;; (f-base "/yo/.dir/") => ".dir"
+  ;; (f-base "/yo/.dir") => ".dir"
+  ;; (f-base "path/to/.foo") => ".foo"
+  ;; (f-base "path/to/file.ext") => "file"
+  ;; (f-base "path/to/directory") => "directory"
+  
+  ;; cut off / for parity to Emacs Lisp
+  (setq path (s-chop-suffix "/" path))
+  (pathname-name path))
+
 ;;; shell
 
 (defmacro subp-with (command-list &rest body)
   "COMMAND is a list of strings which can have spaces in it.
+
+Use `uiop:with-current-directory' to change the working directory.
+Note that the path to `uiop:with-current-directory' needs to end with a slash.'
 
 Anaphoric bindings provided:
   exit: the exit code of the process
