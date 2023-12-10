@@ -493,16 +493,6 @@ Return the empty string for file names such as `foo.' that end in a period."
   ;; (f-ext "foo.") => ""
   (pathname-type path))
 
-(defun f-entries (path)
-  "Return a list of all files and directories as strings in PATH.
-
-Directories end with a \"/\" and PATH must exist.
-
-There is no sorting applied. The returned list is not sorted and
-contains first files, then directories."
-  ;; (f-entries "~")
-  (append (f-files path) (f-directories path)))
-
 (defun f-files (path)
   "Return a list of all files PATH.
 
@@ -531,6 +521,16 @@ If the directory does not exist, nil is returned."
   (--map
    (namestring it)
    (uiop:subdirectories path)))
+
+(defun f-entries (path)
+  "Return a list of all files and directories as strings in PATH.
+
+Directories end with a \"/\" and PATH must exist.
+
+There is no sorting applied. The returned list is not sorted and
+contains first files, then directories."
+  ;; (f-entries "~")
+  (append (f-files path) (f-directories path)))
 
 (defun f-filename (path)
   "Return the name of PATH without any directory.
