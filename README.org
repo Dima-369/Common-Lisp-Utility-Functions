@@ -18,7 +18,7 @@ Clone this repository, then set the cloned director here:
 (push #P"/Users/dima/Developer/Common-Lisp-Utility-Functions/" asdf:*central-registry*)
 #+end_src
 
-Then load via:
+** Then use in your Common Lisp code like this
 
 #+begin_src lisp
 (ql:quickload '(dima))
