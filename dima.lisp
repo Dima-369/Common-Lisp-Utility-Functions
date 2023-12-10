@@ -32,7 +32,7 @@
    -map
    --map
    --map-indexed
-   --partition; named `--separate' in Emacs Lisp
+   --partition                      ; named `--separate' in Emacs Lisp
    thread-first
    thread-last
    f-join
@@ -48,6 +48,8 @@
    f-entries
    f-filename
    f-base
+   f-size
+   file-size-human-readable
    concat
    s-truncate
    s-blank-p
@@ -63,6 +65,7 @@
    s-downcase
    s-contains-p
    s-index-of
+   number-to-string
    subp-with
    slynk-kill-all-workers))
 (in-package dima)
@@ -393,6 +396,12 @@ SUBSTRING and S are strings."
           when (string= (subseq s i (+ i (length substring))) substring)
             return i)))
 
+(defun number-to-string (number)
+  "Return integer or decimal NUMBER to string."
+  ;; (number-to-string 5)
+  ;; (number-to-string 5.1)
+  (write-to-string number))
+
 ;;; files
 
 (defun f-join (&rest paths)
@@ -549,6 +558,53 @@ PATH is a string."
   (setq path (s-chop-suffix "/" path))
   (pathname-name path))
 
+(defun f-size (path)
+  "Return the size of PATH in bytes.
+
+Note that PATH should not be a directory"
+  ;; (f-size "/Users/dima/a.png")
+
+  (let ((stat (osicat-posix:stat path)))
+    (osicat-posix:stat-size stat)))
+
+;; from, heavily patched for 4.9 kB display like macOS Preview
+;; Get Info output
+;; https://old.reddit.com/r/lisp/comments/c3nfzo/humanreadable_file_size_in_lisp/
+(defun file-size-human-readable (file-size)
+  "Produce a string showing FILE-SIZE in human-readable form.
+
+Optional second argument FLAVOR controls the units and the display format.
+
+Each kilobyte is 1024 bytes and the produced suffixes are 
+\"kB\", \"MB\", \"GB\", \"TB\", etc."
+  (cond
+    ((< file-size 1000)
+     (number-to-string file-size))
+
+    (t
+     (let ((power 1000.0)
+           (post-fixes
+             ;; none, kilo, mega, giga, tera, peta, exa, zetta, yotta
+             (list "" "KB" "MB" "GB" "TB" "PB" "EB" "ZB" "YB")))
+       (loop while (and (>= file-size power) (rest post-fixes))
+             do (setf file-size (/ file-size power)
+                      post-fixes (rest post-fixes)))
+
+       (let ((number-format
+               (cond
+                 ((string= "KB" (first post-fixes))
+                  (setf file-size (round file-size))
+                  "~d")
+
+                 ((string= "MB" (first post-fixes))
+                  "~,1f")
+
+                 (t "~,2f"))))
+
+         (format nil (concat number-format " ~a")
+                 file-size
+                 (first post-fixes)))))))
+
 ;;; shell
 
 (defmacro subp-with (command-list &rest body)
@@ -565,8 +621,8 @@ Anaphoric bindings provided:
   stderr: output of stderr"
   `(multiple-value-bind (output error-output exit-code)
        (uiop:run-program ,command-list
-                         :ignore-error-status t
                          :output :string
+                         :ignore-error-status t
                          :error-output :string)
      (let* ((exit exit-code)
             (success (= 0 exit-code))

@@ -7,6 +7,8 @@
                #:arrow-macros
                ;; JSON library
                #:shasht
+               ;; to get the file size
+               #:osicat
                ;; for `sha1'
                #:ironclad)
   :components ((:file "dima")))
